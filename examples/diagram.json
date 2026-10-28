@@ -1,0 +1,13 @@
+{
+  "id":"delivery-flow","kind":"flow","title":"实现到交付流程",
+  "description":"实现通过后，进入验证并汇总结果。",
+  "nodes":[
+    {"id":"implement","title":"实现能力","icon":"layers","description":"按目标完成实现。","inputs":["需求与约束"],"outputs":["实现产物"]},
+    {"id":"verify","title":"验证结果","icon":"check","description":"执行验证并检查验收条件。","inputs":["实现产物","验收条件"],"outputs":["验证摘要"]},
+    {"id":"deliver","title":"汇总交付","icon":"file","description":"形成可查看的交付结论。","inputs":["实现产物","验证摘要"],"outputs":["交付摘要"]}
+  ],
+  "edges":[
+    {"id":"implemented","from":"implement","to":"verify","label":"产物"},
+    {"id":"verified","from":"verify","to":"deliver","label":"验证通过"}
+  ]
+}

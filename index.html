@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+ <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+ <meta name="theme-color" content="#10131b"><title>Trace · Agent 执行观测</title>
+ <script src="theme.js"></script><link rel="stylesheet" href="theme.css"><link rel="stylesheet" href="app.css">
+</head>
+<body>
+ <a class="skip-link" href="#main">跳到工作区</a>
+ <aside class="rail">
+  <a href="#tasks" class="brand" aria-label="Trace 首页"><svg viewBox="0 0 32 32" fill="none" aria-hidden="true"><path d="M7 8h18M16 8v18M7 16h18" stroke="currentColor" stroke-width="3"/><circle cx="25" cy="24" r="3" fill="currentColor"/></svg></a>
+  <nav aria-label="主导航"><a href="#tasks" data-route="tasks" aria-label="任务总览"><span data-icon="tasks"></span><small>任务</small></a><a href="#diagrams" data-route="diagrams" aria-label="结构图谱"><span data-icon="network"></span><small>图谱</small></a></nav>
+  <div class="rail-bottom"><button class="icon-button" data-action="integration" aria-label="查看接入说明"><span data-icon="terminal"></span></button><span class="avatar small-avatar">A</span></div>
+ </aside>
+ <div class="app-shell"><header class="topbar"><div class="product-name">TRACE <span>/</span> <span class="product-desc">Agent 执行观测</span></div><div class="topbar-right"><label class="source-select"><span class="sr-only">数据源</span><select id="data-source" aria-label="数据源"><option value="live">本机任务</option><option value="demo">演示样例</option></select></label><span class="demo-label"><i></i>连接中</span><button class="button quiet" data-action="appearance" aria-haspopup="dialog"><span data-icon="theme"></span><span>外观</span></button><button class="button quiet integration-button" data-action="integration"><span data-icon="terminal"></span><span>接入方式</span></button></div></header><main id="main" tabindex="-1"></main><footer><span>TRACE <i>·</i> 看见过程，理解全局</span><span>本地演示 · 所有任务与运行数据均为样例</span></footer></div>
+ <dialog id="appearance-dialog" aria-labelledby="appearance-title"><div class="modal-head"><div><span class="eyebrow">APPEARANCE</span><h2 id="appearance-title">让工作台适合你的环境</h2></div><button class="icon-button" data-close="appearance-dialog" aria-label="关闭外观设置"><span data-icon="close"></span></button></div><fieldset><legend>明暗模式</legend><div class="theme-options"><label><input type="radio" name="mode" value="light" data-pref="mode"><span class="theme-preview light-preview"><i></i><i></i></span><b>浅色</b></label><label><input type="radio" name="mode" value="dark" data-pref="mode"><span class="theme-preview dark-preview"><i></i><i></i></span><b>深色</b></label><label><input type="radio" name="mode" value="system" data-pref="mode"><span class="theme-preview system-preview"><i></i><i></i></span><b>跟随系统</b></label></div></fieldset><p class="muted" id="theme-note">偏好保存在此浏览器，切换时保留当前任务、图示与回放位置。</p><button class="button primary full" data-close="appearance-dialog">完成设置</button></dialog>
+ <dialog id="info-dialog" aria-labelledby="info-title"><div class="modal-head"><div><span class="eyebrow" id="info-eyebrow"></span><h2 id="info-title"></h2></div><button class="icon-button" data-close="info-dialog" aria-label="关闭说明"><span data-icon="close"></span></button></div><div id="info-content"></div></dialog>
+ <div id="toast" role="status" aria-live="polite"></div>
+ <script src="data.js"></script><script src="live.js"></script><script src="app.js"></script>
+</body></html>

@@ -1,0 +1,10 @@
+{
+  "id":"report-sequence","kind":"sequence","title":"Agent 汇报时序",
+  "description":"Agent 通过 CLI 写入服务，页面获取最新状态。",
+  "participants":[{"id":"agent","title":"Agent"},{"id":"cli","title":"CLI"},{"id":"service","title":"本机服务"},{"id":"page","title":"页面"}],
+  "messages":[
+    {"id":"invoke","from":"agent","to":"cli","title":"提交任务进度","inputs":["任务 ID","进度"],"outputs":["CLI 请求"]},
+    {"id":"persist","from":"cli","to":"service","title":"写入并持久化","inputs":["经过校验的汇报"],"outputs":["已提交的 SQLite 数据"]},
+    {"id":"notify","from":"service","to":"page","title":"通知页面刷新状态","inputs":["最新数据版本"],"outputs":["已更新的任务列表"]}
+  ]
+}

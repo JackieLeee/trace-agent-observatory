@@ -1,0 +1,35 @@
+/* Foundation → semantic roles → component roles. Brand and mode are independent. */
+:root {
+ color-scheme:light;
+ --blue-600:#365be0;--blue-300:#9bb1ff;--gray-950:#1c2434;--gray-50:#f5f7fb;
+ --canvas:var(--gray-50);--surface:#fff;--raised:#fff;--subtle:#f1f4fa;--hover:#e9eef7;
+ --text:var(--gray-950);--muted:#647087;--faint:#626d82;--line:#e0e5ee;--strong-line:#a3afc2;
+ --accent:var(--blue-600);--accent-hover:#2948bc;--on-accent:#fff;--accent-soft:#eaf0ff;--accent-line:#a8baf4;
+ --success:#18735c;--success-soft:#e5f4ee;--success-line:#9bcaba;
+ --warning:#956115;--warning-soft:#fff4dd;--warning-line:#d9b66e;
+ --danger:#b74149;--danger-soft:#ffedef;--danger-line:#e5a9b0;
+ --pending:#5f6b81;--pending-soft:#edf0f6;--focus:#254acb;--overlay:#19263880;
+ --rail:#fff;--rail-line:var(--line);--rail-text:#7a869b;--rail-active:var(--accent-soft);
+ --hero:var(--surface);--hero-tint:#f1f4ff;--hero-track:#e5ebf7;--hero-grid:#dce4f3;
+ --canvas-dot:#cbd4e4;--diagram-edge:#9aa8c0;--diagram-node:var(--surface);--diagram-group:#eef2f9;
+ --artifact:#f5f7fc;--terminal:#1e2638;--terminal-text:#dce5ff;--shadow:0 18px 64px #1e365b26;
+ --code-text:#3151b1;--scroll:#a9b5c9;--chart-alt:#a9c7c0;
+ --preview-light:#f5f7fb;--preview-dark:#191f2d;--preview-line:#8e9bb3;
+ --radius:14px;--fast:150ms;--normal:220ms;--ease:cubic-bezier(.2,.7,.2,1);
+ --font:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+ --mono:"SFMono-Regular",Consolas,"Liberation Mono",monospace;
+}
+:root[data-mode="dark"] {
+ color-scheme:dark;
+ --canvas:#10131b;--surface:#181d28;--raised:#222a39;--subtle:#202735;--hover:#293246;
+ --text:#edf1fb;--muted:#a1adc3;--faint:#95a2bb;--line:#30394d;--strong-line:#62728e;
+ --accent:var(--blue-300);--accent-hover:#b7c6ff;--on-accent:#17264e;--accent-soft:#273455;--accent-line:#506aa4;
+ --success:#76d9b7;--success-soft:#183c34;--success-line:#3c806d;
+ --warning:#e7c17c;--warning-soft:#3d3221;--warning-line:#987b48;
+ --danger:#ff9fa7;--danger-soft:#472a34;--danger-line:#a35f70;
+ --pending:#a2afc6;--pending-soft:#272e3d;--focus:#b7caff;--overlay:#060b16c9;
+ --rail:#141924;--rail-text:#9caac4;--hero:#1a2130;--hero-tint:#202d4e;--hero-track:#303c58;--hero-grid:#35425e;
+ --canvas-dot:#36425a;--diagram-edge:#63728e;--diagram-group:#1d2638;
+ --artifact:#202938;--terminal:#101622;--terminal-text:#d5e1ff;--shadow:0 18px 64px #0006;
+ --code-text:#b0c5ff;--scroll:#51617b;--chart-alt:#486f65;
+}

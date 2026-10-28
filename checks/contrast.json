@@ -1,0 +1,34 @@
+[
+  {
+    "mode": "light",
+    "semanticTextPairs": {
+      "text/surface": 15.54,
+      "muted/surface": 4.989,
+      "faint/canvas": 4.86,
+      "accent/accent-soft": 4.935,
+      "on-accent/accent": 5.631,
+      "success/success-soft": 5.076,
+      "warning/warning-soft": 4.811,
+      "danger/danger-soft": 4.815,
+      "pending/pending-soft": 4.709,
+      "muted/subtle": 4.528
+    },
+    "minimum": 4.528177790644403
+  },
+  {
+    "mode": "dark",
+    "semanticTextPairs": {
+      "text/surface": 14.918,
+      "muted/surface": 7.453,
+      "faint/canvas": 7.218,
+      "accent/accent-soft": 5.927,
+      "on-accent/accent": 7.113,
+      "success/success-soft": 7.136,
+      "warning/warning-soft": 7.346,
+      "danger/danger-soft": 6.532,
+      "pending/pending-soft": 6.141,
+      "muted/subtle": 6.615
+    },
+    "minimum": 5.926687089222743
+  }
+]

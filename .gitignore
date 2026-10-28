@@ -1,0 +1,19 @@
+# Build outputs and local runtime state
+mac/dist/
+__pycache__/
+*.py[cod]
+.DS_Store
+*.sqlite*
+*.db
+*.db-wal
+*.db-shm
+*.token
+.env
+.env.*
+service.json
+service.log
+
+# Local screenshots and exports
+/*.jpg
+/mac/*.png
+/mac/*-export-check.json

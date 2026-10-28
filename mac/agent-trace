@@ -1,0 +1,8 @@
+#!/bin/sh
+set -eu
+trace_resources=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+export PYTHONHOME="$trace_resources/runtime"
+export PYTHONNOUSERSITE=1
+export PYTHONDONTWRITEBYTECODE=1
+unset PYTHONPATH PYTHONSTARTUP PYTHONSAFEPATH PYTHONINSPECT PYTHONUSERBASE __PYVENV_LAUNCHER__
+exec "$PYTHONHOME/bin/python3" -s -S "$trace_resources/service/agent_trace.py" "$@"

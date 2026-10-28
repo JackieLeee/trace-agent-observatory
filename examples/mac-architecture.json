@@ -1,0 +1,17 @@
+{
+  "id":"mac-architecture","kind":"architecture","title":"Mac 本机架构",
+  "description":"App 和 Agent 共享同一本机服务与 SQLite，关闭 App 后 Agent 仍可继续汇报。",
+  "nodes":[
+    {"id":"agent","title":"Agent","sub":"执行任务","description":"按任务实际进展调用 CLI 汇报。","inputs":["任务目标"],"outputs":["任务计划与进度"],"icon":"spark","x":40,"y":80},
+    {"id":"cli","title":"agent-trace","sub":"CLI 汇报入口","description":"使用 App 内置的运行环境和本机写入凭证。","inputs":["任务、进度、图示与运行步骤"],"outputs":["经过鉴权的 HTTP 请求"],"icon":"terminal","x":290,"y":80},
+    {"id":"service","title":"本机服务","sub":"HTTP API + SSE","description":"校验和持久化汇报，并通知页面获取最新快照。","inputs":["CLI 写入请求","App 读取请求"],"outputs":["事务提交结果","实时数据通知"],"icon":"gateway","x":540,"y":210},
+    {"id":"sqlite","title":"SQLite","sub":"共享持久化","description":"任务、计划版本、图示版本和运行记录保存在原来的本机数据目录。","inputs":["已校验的数据"],"outputs":["持久化快照"],"icon":"database","x":790,"y":210},
+    {"id":"app","title":"Trace.app","sub":"Mac 独立窗口","description":"自动启动或复用本机服务，在独立窗口展示任务和图谱。","inputs":["任务快照","SSE 更新通知"],"outputs":["任务列表与可交互图谱"],"icon":"window","x":40,"y":340}
+  ],
+  "edges":[
+    {"id":"invoke-cli","from":"agent","to":"cli","label":"调用 CLI"},
+    {"id":"report-http","from":"cli","to":"service","label":"鉴权汇报"},
+    {"id":"commit-sqlite","from":"service","to":"sqlite","label":"事务写入"},
+    {"id":"app-state","from":"app","to":"service","label":"快照与实时订阅"}
+  ]
+}

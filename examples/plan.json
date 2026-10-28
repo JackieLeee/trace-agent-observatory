@@ -1,0 +1,8 @@
+{
+  "reason": "建立执行计划",
+  "tasks": [
+    {"id":"build","title":"实现与验证","agent":"coordinator"},
+    {"id":"implement","parent_id":"build","title":"完成实现","objective":"实现目标能力并生成可验证产物","agent":"builder","weight":70},
+    {"id":"verify","parent_id":"build","title":"验证并交付","objective":"验证实现结果，整理交付摘要","agent":"verifier","weight":30,"dependencies":["implement"]}
+  ]
+}
