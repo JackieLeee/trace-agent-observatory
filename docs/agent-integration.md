@@ -127,4 +127,3 @@ JSON
 把下面这段加入目标 Agent 的任务提示或项目说明即可：
 
 > 使用 `~/.local/bin/agent-trace` 汇报本机任务进度。先执行 `start`，为当前目标创建稳定 task ID，再用 `plan put` 提交带权重和依赖的子任务。在开始、阶段完成、计划改变、阻塞、恢复及最终交付时对叶子任务 `task report`，如实汇报，不模拟进度。阻塞时提供 `status=blocked`、`blocker` 原因及 `current` 处理进展，解除后更新状态。CLI 失败时读取 JSON 错误，查询当前状态并处理。需要展示逻辑结构时单独 `diagram put`；实际运行时用 `run start/step/finish`，步骤引用图中 ID，重试复用 event_id。命令成功输出 JSON，错误输出到 stderr 并返回非零码。完整说明见 Trace 仓库的 `docs/agent-integration.md`。
-
