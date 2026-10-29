@@ -1,5 +1,7 @@
 # Trace Mac app
 
+[返回产品首页](../README.md) · [开发与验证](../docs/development.md)
+
 AppKit + WKWebView 窗口，复用现有本机服务与主题系统。不是浏览器快捷方式；服务、页面和 Python 标准运行环境均随 `.app` 打包。内置后端与 CLI 保持同一 HTTP 协议和默认数据目录。
 
 ## 构建
@@ -17,6 +19,8 @@ python3 mac/build.py --install       # 安装到 ~/Applications/Trace.app 并更
 若应用移动到其他文件夹，应用自身仍能运行，内附 CLI 也能通过 `APP路径/Contents/Resources/bin/agent-trace` 使用；当前 `~/.local/bin/agent-trace` 入口指向安装位置，需要随之调整。
 
 ## 行为
+
+快捷键：`⌘1` 打开任务总览，`⌘2` 打开结构图谱，`⌘,` 打开外观设置，`⌘R` 重新载入。外观偏好在 App 与浏览器中分别保存。
 
 - 启动执行内附 CLI `start`，复用已确认的本机服务实例，再载入该本机地址。
 - 网页仅可导航到当前服务和本地下载链接；用户点击的外部 HTTP 链接交给系统浏览器。
