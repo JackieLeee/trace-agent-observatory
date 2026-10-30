@@ -44,6 +44,9 @@ python3 mac/build.py --install
 ```sh
 python3 -m unittest discover -s checks -p 'test_service.py' -v
 node checks/live.test.cjs
+node checks/floating.test.cjs
+xcrun swiftc mac/FloatingLayout.swift checks/floating_layout.swift -o /tmp/trace-floating-layout-check
+/tmp/trace-floating-layout-check
 node checks/model.test.cjs
 node checks/theme.test.cjs
 python3 checks/contrast.py

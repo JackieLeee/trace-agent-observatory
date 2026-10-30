@@ -103,6 +103,6 @@ const TraceLive = (() => {
   stream?.close();clearTimeout(retryTimer);emit('trace:state');emit('trace:status');
   if(mode==='live'){refresh();connect()}
  }
- function init(){if(mode==='live'){refresh();connect()}}
+ function init({liveOnly=false}={}){if(liveOnly)mode='live';if(mode==='live'){refresh();connect()}}
  return {get mode(){return mode},get status(){return status},get revision(){return state.revision},get raw(){return state},projects,agents,snapshot,definitions,runCatalog,diagram,runtime,refresh,setMode,init};
 })();
