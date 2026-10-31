@@ -1,0 +1,15 @@
+const assert=require('node:assert/strict'),vm=require('node:vm'),fs=require('node:fs'),path=require('node:path');
+const events={},messages=[],storage=new Map();
+const context=vm.createContext({Event,localStorage:{getItem:key=>storage.get(key)||null,setItem:(key,value)=>storage.set(key,value)},window:{webkit:{messageHandlers:{traceFloatingPreferences:{postMessage:message=>messages.push(message)}}}},addEventListener:(type,fn)=>events[type]=fn,document:{dispatchEvent(){}}});
+vm.runInContext(fs.readFileSync(path.join(__dirname,'../floating-prefs.js'),'utf8')+'\nthis.prefs=TraceFloatingPreferences;',context);
+const p=context.prefs,copy=value=>JSON.parse(JSON.stringify(value));
+assert.equal(p.value.autoHide,true);assert.equal(p.value.edge,'right');p.init();assert.equal(messages.at(-1).action,'get');
+p.update({taskMode:'manual',taskIDs:['a','a','<script>','b','c','d','e'],edge:'left',enabled:false});
+assert.deepEqual(copy(p.value.taskIDs),['a','b','c','d']);assert.equal(messages.at(-1).action,'set');
+p.value.taskIDs.push('mutated');assert.equal(p.value.taskIDs.length,4);
+events['trace:floating-preferences']({detail:{enabled:true,autoHide:false,edge:'right',taskMode:'manual',taskIDs:['native']}});
+assert.deepEqual(copy(p.value.taskIDs),['native']);assert.equal(p.value.autoHide,false);assert.equal(p.value.enabled,true);
+assert.equal(p.normalize({autoHide:'bad',taskMode:'bad',edge:'bad'}).autoHide,true);
+assert.equal(p.normalize({autoHide:'bad',taskMode:'bad',edge:'bad'}).taskMode,'automatic');
+assert.deepEqual(copy(JSON.parse(storage.get('trace.floating.v1')).taskIDs),['native']);
+console.log('PASS: preference defaults, native authority, task validation and limit, immutable snapshots and persistence');

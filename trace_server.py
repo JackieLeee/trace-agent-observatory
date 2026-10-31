@@ -10,7 +10,7 @@ from urllib.parse import unquote, urlsplit
 from trace_store import Store, Problem
 
 ROOT=Path(__file__).resolve().parent
-ASSETS={'index.html','app.js','data.js','live.js','app.css','theme.js','theme.css','floating.html','floating.js','floating.css'}
+ASSETS={'index.html','app.js','data.js','live.js','app.css','theme.js','theme.css','floating.html','floating.js','floating.css','floating-prefs.js','settings.html','settings.js','settings.css'}
 
 class Server(ThreadingHTTPServer):
     daemon_threads=True

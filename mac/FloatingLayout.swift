@@ -20,6 +20,12 @@ enum FloatingLayout {
         return nil
     }
 
+    static func peekFrame(full: CGRect, side: FloatingSide, screen: CGRect) -> CGRect {
+        let h = min(64, screen.height)
+        return CGRect(x: side == .left ? screen.minX : screen.maxX - 10,
+                      y: min(screen.maxY - h, max(screen.minY, full.midY - h / 2)), width: 10, height: h)
+    }
+
     static func frame(current: CGRect, side: FloatingSide, expanded: Bool,
                       height: CGFloat, screen: CGRect, docked: Bool) -> CGRect {
         let width = expanded ? expandedWidth : collapsedWidth

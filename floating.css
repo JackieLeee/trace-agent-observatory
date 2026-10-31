@@ -5,10 +5,9 @@
 #detail{position:relative}#detail:not(:empty):after{content:'';position:absolute;right:-12px;top:var(--notch-y,78px);transform:translateY(-50%);border-top:10px solid transparent;border-bottom:10px solid transparent;border-left:13px solid var(--widget-surface);pointer-events:none}
 
 /* The rail stays quiet; actions live in the native context menu. */
-.grip{display:grid;place-items:center;height:16px;cursor:grab}
-.grip:before{content:'';width:18px;height:3px;border-radius:3px;background:var(--widget-muted);opacity:0}
-#rail:hover .grip:before{opacity:.45}
 :root[data-edge="left"] #widget{flex-direction:row-reverse}
 :root[data-edge="left"] #detail:not(:empty):after{right:auto;left:-12px;border-left:0;border-right:13px solid var(--widget-surface)}
 :root[data-docked="right"] #rail{border-radius:24px 0 0 24px;border-right:0}
 :root[data-docked="left"] #rail{border-radius:0 24px 24px 0;border-left:0}
+
+html,body{user-select:none;-webkit-user-select:none}body.dragging,body.dragging *{cursor:grabbing!important}

@@ -17,7 +17,7 @@ ROOT = Path(__file__).resolve().parent.parent
 BUNDLE_ID = 'local.trace.agent-workspace'
 ASSETS = ['agent_trace.py', 'trace_store.py', 'trace_server.py', 'index.html', 'app.js',
           'data.js', 'live.js', 'app.css', 'theme.js', 'theme.css', 'floating.html',
-          'floating.js', 'floating.css', 'README.md']
+          'floating.js', 'floating.css', 'floating-prefs.js', 'settings.html', 'settings.js', 'settings.css', 'README.md']
 
 
 def run(*args, **kwargs):
@@ -123,7 +123,7 @@ def build(app):
     (resources / 'bin/agent-trace').chmod(0o755)
     version = copy_runtime(resources / 'runtime', arch)
     run('xcrun', 'swiftc', '-swift-version', '5', '-O', '-target', f'{arch}-apple-macos13.0',
-        '-framework', 'AppKit', '-framework', 'WebKit', ROOT / 'mac/FloatingLayout.swift', ROOT / 'mac/Trace.swift', '-o', macos / 'Trace')
+        '-framework', 'AppKit', '-framework', 'WebKit', ROOT / 'mac/FloatingLayout.swift', ROOT / 'mac/FloatingController.swift', ROOT / 'mac/Trace.swift', '-o', macos / 'Trace')
     with tempfile.TemporaryDirectory(prefix='trace-icon-') as directory:
         temp = Path(directory)
         run('xcrun', 'swiftc', '-swift-version', '5', ROOT / 'mac/Icon.swift', '-o', temp / 'draw-icon')
@@ -132,7 +132,7 @@ def build(app):
     info = {
         'CFBundleIdentifier': BUNDLE_ID, 'CFBundleName': 'Trace', 'CFBundleDisplayName': 'Trace',
         'CFBundleExecutable': 'Trace', 'CFBundlePackageType': 'APPL', 'CFBundleIconFile': 'Trace',
-        'CFBundleShortVersionString': '0.3.0', 'CFBundleVersion': '3',
+        'CFBundleShortVersionString': '0.4.0', 'CFBundleVersion': '4',
         'LSMinimumSystemVersion': '13.0', 'NSHighResolutionCapable': True,
         'NSHumanReadableCopyright': 'Trace — 本机 Agent 执行观测',
         'NSAppTransportSecurity': {'NSAllowsLocalNetworking': True,

@@ -2,17 +2,18 @@
  const escape=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const labels={blocked:'已阻塞',recovery:'自主恢复',error:'执行异常',done:'已完成',running:'进行中',waiting:'等待执行'};
  const bridge=()=>window.webkit?.messageHandlers?.traceFloating;
- let selected='',pinned=false,leaveTimer=null,snapshots=[],layout='';
+ let selected='',pinned=false,leaveTimer=null,snapshots=[],layout='',pointerStart=null,dragged=false,suppressUntil=0;
+ const preferences=TraceFloatingPreferences;
  function send(value){bridge()?.postMessage(value)}
  function openTask(id){
   if(bridge())send(id?{action:'open-task',id}:{action:'open-main'});
   else location.href=id?'./#task/'+encodeURIComponent(id):'./#tasks';
  }
  function resize(){
-  const height=Math.max(130,snapshots.length*100+56),expanded=Boolean(selected);
+  const height=Math.max(130,snapshots.length*100+40),expanded=Boolean(selected);
   const next=expanded+':'+height;if(next===layout)return;layout=next;
   document.querySelector('#widget').classList.toggle('expanded',expanded);
-  send({action:'layout',expanded,height:Math.max(height,expanded?500:0)});
+  send({action:'layout',expanded,height:Math.max(height,expanded?500:0),compactHeight:height});
  }
  function select(id,pin=false){
   clearTimeout(leaveTimer);
@@ -35,9 +36,10 @@
  function render(){
   const available=TraceLive.projects().filter(p=>!p.archivedAt).map(p=>TraceLive.snapshot(p.id));
   const active=available.filter(s=>s.status!=='done');active.sort((a,b)=>(b.blocked||0)-(a.blocked||0));
-  snapshots=(active.length?active:available).slice(0,4);
+  const p=preferences.value;
+  snapshots=p.taskMode==='manual'?p.taskIDs.map(id=>available.find(s=>s.project.id===id)).filter(Boolean):(active.length?active:available).slice(0,4);
   if(selected&&!snapshots.some(s=>s.project.id===selected)){selected='';pinned=false}
-  document.querySelector('#meters').innerHTML=snapshots.length?snapshots.map((s,i)=>`<button class="meter ${s.status}" data-task="${escape(s.project.id)}" aria-label="${escape(s.project.title)}，${s.percent}%，${labels[s.status]||'等待执行'}" aria-expanded="${s.project.id===selected}" title="${escape(s.project.title)}"><span class="ring"><svg viewBox="0 0 64 64" aria-hidden="true"><circle class="ring-track" cx="32" cy="32" r="25"/><circle class="ring-value" cx="32" cy="32" r="25" pathLength="100" stroke-dasharray="${s.percent} 100"/></svg><span class="ring-center">${s.status==='blocked'?'!':s.status==='done'?'✓':String(i+1).padStart(2,'0')}</span>${TraceLive.status!=='online'?'<i class="offline-dot"></i>':''}</span><strong>${s.percent}<small>%</small></strong><span class="meter-name">${escape(s.project.title)}</span></button>`).join(''):`<button class="empty-meter" data-action="open-main" aria-label="打开工作台"><span class="trace-symbol">T.</span><small>${TraceLive.status==='online'?'暂无任务':TraceLive.status==='loading'?'连接中':'已断开'}</small></button>`;
+  document.querySelector('#meters').innerHTML=snapshots.length?snapshots.map((s,i)=>`<button class="meter ${s.status}" data-task="${escape(s.project.id)}" aria-label="${escape(s.project.title)}，${s.percent}%，${labels[s.status]||'等待执行'}" aria-expanded="${s.project.id===selected}" title="${escape(s.project.title)}"><span class="ring"><svg viewBox="0 0 64 64" aria-hidden="true"><circle class="ring-track" cx="32" cy="32" r="25"/><circle class="ring-value" cx="32" cy="32" r="25" pathLength="100" stroke-dasharray="${s.percent} 100"/></svg><span class="ring-center">${s.status==='blocked'?'!':s.status==='done'?'✓':String(i+1).padStart(2,'0')}</span>${TraceLive.status!=='online'?'<i class="offline-dot"></i>':''}</span><strong>${s.percent}<small>%</small></strong><span class="meter-name">${escape(s.project.title)}</span></button>`).join(''):`<button class="empty-meter" data-action="settings" aria-label="选择悬浮窗任务"><span class="trace-symbol">T.</span><small>${TraceLive.status==='online'?'选择任务':TraceLive.status==='loading'?'连接中':'已断开'}</small></button>`;
   renderDetail();resize();
  }
  document.querySelector('#meters').addEventListener('mouseover',event=>{const task=event.target.closest('[data-task]');if(task&&task.dataset.task!==selected)select(task.dataset.task)});
@@ -48,10 +50,16 @@
   if(task)select(task.dataset.task,true);
   else if(open)openTask(open.dataset.open);
   else if(action?.dataset.action==='collapse')close();
-  else if(action?.dataset.action==='open-main')openTask();
+  else if(action?.dataset.action==='settings'){if(bridge())send({action:'settings'});else location.href='./settings.html'};
  });
  document.addEventListener('keydown',event=>{if(event.key==='Escape')close()});
+ document.addEventListener('mousedown',event=>{if(event.button===0){pointerStart={x:event.screenX,y:event.screenY};dragged=false}},true);
+ document.addEventListener('mousemove',event=>{if(pointerStart&&event.buttons===1&&Math.hypot(event.screenX-pointerStart.x,event.screenY-pointerStart.y)>4)dragged=true},true);
+ document.addEventListener('mouseup',()=>{if(dragged)suppressUntil=Date.now()+350;pointerStart=null},true);
+ document.addEventListener('click',event=>{if(dragged||Date.now()<suppressUntil){event.preventDefault();event.stopImmediatePropagation();dragged=false}},true);
+ window.TraceFloatingInteraction={collapse:close,setDragging(value){document.body.classList.toggle('dragging',value);if(value){dragged=true;suppressUntil=Date.now()+1000}else suppressUntil=Date.now()+350}};
  document.querySelector('#widget').addEventListener('contextmenu',event=>{if(bridge()){event.preventDefault();send({action:'menu'})}});
  document.addEventListener('trace:state',render);document.addEventListener('trace:status',render);
- TraceLive.init({liveOnly:true});render();
+ document.addEventListener('trace:floating-settings',render);
+ preferences.init();TraceLive.init({liveOnly:true});render();
 })();

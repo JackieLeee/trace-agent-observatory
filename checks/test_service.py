@@ -136,7 +136,7 @@ class ServiceTest(unittest.TestCase):
         self.api('GET','/trace_store.py',expected=404)
         self.api('GET','/auth.token',expected=404)
         with urlopen(self.url+'/') as r:self.assertIn("script-src 'self'",r.headers['Content-Security-Policy'])
-        for asset in ['floating.html','floating.js','floating.css']:
+        for asset in ['floating.html','floating.js','floating.css','floating-prefs.js','settings.html','settings.js','settings.css']:
             with urlopen(self.url+'/'+asset) as r:self.assertEqual(r.status,200)
     def test_cli_stdin_files_and_nonzero_errors(self):
         base=[sys.executable,str(ROOT/'agent_trace.py'),'--data-dir',str(self.home),'--url',self.url]

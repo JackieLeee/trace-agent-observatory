@@ -41,59 +41,18 @@ enum LocalService {
     }
 }
 
-final class FloatingPanel: NSPanel {
-    override var canBecomeKey: Bool { true }
-}
-
-final class FloatingDragHandle: NSView {
-    var afterDrag: (() -> Void)?
-    var showMenu: (() -> Void)?
-    private var dragStart: NSPoint?
-    private var windowStart: NSPoint?
-    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
-    override func resetCursorRects() { addCursorRect(bounds, cursor: .openHand) }
-    private func screenPoint(_ event: NSEvent) -> NSPoint {
-        // Read the event's own position; the global cursor may have advanced while events were queued.
-        if let point = event.cgEvent?.location {
-            return NSPoint(x: point.x, y: (NSScreen.screens.first?.frame.maxY ?? 0) - point.y)
-        }
-        return window?.convertPoint(toScreen: event.locationInWindow) ?? .zero
-    }
-    override func mouseDown(with event: NSEvent) {
-        dragStart = screenPoint(event)
-        windowStart = window?.frame.origin
-    }
-    override func mouseDragged(with event: NSEvent) {
-        guard let dragStart, let windowStart else { return }
-        let mouse = screenPoint(event)
-        window?.setFrameOrigin(NSPoint(x: windowStart.x + mouse.x - dragStart.x,
-                                      y: windowStart.y + mouse.y - dragStart.y))
-    }
-    override func mouseUp(with event: NSEvent) {
-        if dragStart != nil { mouseDragged(with: event); afterDrag?() }
-        dragStart = nil
-        windowStart = nil
-    }
-    override func rightMouseDown(with event: NSEvent) { showMenu?() }
-}
-
 final class TraceApp: NSObject, NSApplicationDelegate, WKNavigationDelegate, WKUIDelegate,
                        WKScriptMessageHandler, WKDownloadDelegate {
     private var window: NSWindow!
     private var webView: WKWebView!
-    private var floatingPanel: NSPanel?
-    private var floatingWebView: WKWebView?
-    private var floatingDragHandle: NSView?
-    private var floatingSide = FloatingSide(rawValue: UserDefaults.standard.string(forKey: "TraceFloatingEdge") ?? "right") ?? .right
-    private var floatingDocked = true
-    private var floatingExpanded = false
-    private var floatingHeight = 156
+    private let floating = FloatingController()
     private var loadingView: NSView!
     private var progress: NSProgressIndicator!
     private var statusLabel: NSTextField!
     private var retryButton: NSButton!
     private var serviceURL: URL?
     private var serviceDataDirectory: URL?
+    private var pendingWorkspaceScript: String?
     private var connecting = false
     private var lifecycleBusy = false
     private let noRedirects = NoRedirects()
@@ -102,6 +61,11 @@ final class TraceApp: NSObject, NSApplicationDelegate, WKNavigationDelegate, WKU
         NSApp.setActivationPolicy(.regular)
         makeWindow()
         makeMenus()
+        floating.makeConfiguration = { [weak self] in self?.makeWebConfiguration(lifecycle: false) ?? WKWebViewConfiguration() }
+        floating.navigationDelegate = self
+        floating.openWorkspace = { [weak self] in self?.openMain() }
+        floating.openSettings = { [weak self] in self?.showSettings() }
+        floating.changed = { [weak self] in if let self { self.floating.publish(to: self.webView) } }
         connect()
         NSApp.activate(ignoringOtherApps: true)
     }
@@ -111,6 +75,7 @@ final class TraceApp: NSObject, NSApplicationDelegate, WKNavigationDelegate, WKU
         configuration.websiteDataStore = .default()
         configuration.userContentController.add(self, name: "traceTheme")
         configuration.userContentController.add(self, name: "traceFloating")
+        configuration.userContentController.add(self, name: "traceFloatingPreferences")
         if lifecycle { configuration.userContentController.add(self, name: "traceLifecycle") }
         let bridge = """
         (() => {
@@ -215,7 +180,7 @@ final class TraceApp: NSObject, NSApplicationDelegate, WKNavigationDelegate, WKU
                     var components = URLComponents(url: info.url, resolvingAgainstBaseURL: false)!
                     components.fragment = "tasks"
                     self.webView.load(URLRequest(url: components.url!))
-                    self.loadFloatingPage()
+                    self.floating.connect(to: info.url)
                 case .failure(let error): self.showFailure(error.localizedDescription)
                 }
             }
@@ -229,114 +194,19 @@ final class TraceApp: NSObject, NSApplicationDelegate, WKNavigationDelegate, WKU
         statusLabel.stringValue = "工作台暂时无法打开。\n" + String(message.prefix(700))
     }
 
-    private func loadFloatingPage() {
-        guard let serviceURL, let floatingWebView else { return }
-        floatingWebView.load(URLRequest(url: serviceURL.appendingPathComponent("floating.html")))
-    }
-
-    @objc private func toggleFloating() {
-        if let panel = floatingPanel, panel.isVisible { panel.orderOut(nil); return }
-        guard serviceURL != nil else { connect(); return }
-        if floatingPanel == nil {
-            let panel = FloatingPanel(contentRect: NSRect(x: 0, y: 0, width: 100, height: 156),
-                styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
-            panel.title = "Trace · 悬浮进度"
-            panel.level = .floating
-            panel.hidesOnDeactivate = false
-            panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
-            panel.isReleasedWhenClosed = false
-            panel.isOpaque = false
-            panel.backgroundColor = .clear
-            panel.hasShadow = false
-            panel.appearance = window.appearance
-            let visible = (window.screen ?? NSScreen.main)?.visibleFrame ?? window.frame
-            let topGap = UserDefaults.standard.object(forKey: "TraceFloatingTopGap") as? Double ?? Double(visible.height / 3)
-            panel.setFrameOrigin(NSPoint(x: visible.maxX - 100, y: visible.maxY - CGFloat(topGap) - 156))
-            let view = WKWebView(frame: .zero, configuration: makeWebConfiguration(lifecycle: false))
-            view.navigationDelegate = self
-            view.underPageBackgroundColor = .clear
-            view.setValue(false, forKey: "drawsBackground")
-            view.translatesAutoresizingMaskIntoConstraints = false
-            floatingWebView = view
-            let content = NSView()
-            content.addSubview(view)
-            NSLayoutConstraint.activate([
-                view.topAnchor.constraint(equalTo: content.topAnchor), view.bottomAnchor.constraint(equalTo: content.bottomAnchor),
-                view.leadingAnchor.constraint(equalTo: content.leadingAnchor), view.trailingAnchor.constraint(equalTo: content.trailingAnchor)
-            ])
-            let handle = FloatingDragHandle(frame: NSRect(x: 17, y: 114, width: 66, height: 22))
-            handle.toolTip = "拖动移动，靠近屏幕边缘自动吸附；右键打开菜单"
-            handle.afterDrag = { [weak self] in self?.finishFloatingDrag() }
-            handle.showMenu = { [weak self] in self?.showFloatingMenu() }
-            handle.autoresizingMask = [.minXMargin, .minYMargin]
-            content.addSubview(handle)
-            floatingDragHandle = handle
-            panel.contentView = content
-            floatingPanel = panel
-            layoutFloating(expanded: false, height: floatingHeight)
-            loadFloatingPage()
-        }
-        floatingPanel?.makeKeyAndOrderFront(nil)
-    }
-
-    private func layoutFloating(expanded: Bool, height: Int) {
-        guard let panel = floatingPanel else { return }
-        floatingExpanded = expanded
-        floatingHeight = height
-        let visible = (panel.screen ?? NSScreen.main)?.visibleFrame ?? panel.frame
-        let frame = FloatingLayout.frame(current: panel.frame, side: floatingSide, expanded: expanded,
-            height: CGFloat(height), screen: visible, docked: floatingDocked)
-        panel.setFrame(frame, display: true)
-        let handleX = floatingSide == .left ? 17 : frame.width - 83
-        floatingDragHandle?.frame = NSRect(x: handleX, y: frame.height - 42, width: 66, height: 22)
-        updateFloatingPlacement()
-    }
-
-    private func updateFloatingPlacement() {
-        floatingWebView?.callAsyncJavaScript("document.documentElement.dataset.edge = side; document.documentElement.dataset.docked = docked ? side : ''",
-            arguments: ["side": floatingSide.rawValue, "docked": floatingDocked], in: nil, in: .page, completionHandler: nil)
-    }
-
-    private func finishFloatingDrag() {
-        guard let panel = floatingPanel else { return }
-        let visible = (panel.screen ?? NSScreen.main)?.visibleFrame ?? panel.frame
-        if let side = FloatingLayout.nearestEdge(panel.frame, side: floatingSide, screen: visible) {
-            floatingSide = side
-            floatingDocked = true
-            UserDefaults.standard.set(side.rawValue, forKey: "TraceFloatingEdge")
-        } else { floatingDocked = false }
-        layoutFloating(expanded: floatingExpanded, height: floatingHeight)
-        UserDefaults.standard.set(Double(visible.maxY - panel.frame.maxY), forKey: "TraceFloatingTopGap")
-    }
-
-    @objc private func hideFloating() { floatingPanel?.orderOut(nil) }
-    @objc private func openFloatingWorkspace() { openMain() }
-    @objc private func dockFloatingLeft() { dockFloating(.left) }
-    @objc private func dockFloatingRight() { dockFloating(.right) }
-    private func dockFloating(_ side: FloatingSide) {
-        floatingSide = side
-        floatingDocked = true
-        UserDefaults.standard.set(side.rawValue, forKey: "TraceFloatingEdge")
-        layoutFloating(expanded: floatingExpanded, height: floatingHeight)
-    }
-
-    private func showFloatingMenu() {
-        guard let panel = floatingPanel, let view = floatingWebView else { return }
-        let menu = NSMenu()
-        for (title, action) in [("打开 Trace", #selector(openFloatingWorkspace)), ("隐藏悬浮窗", #selector(hideFloating)),
-                                ("吸附到屏幕左侧", #selector(dockFloatingLeft)), ("吸附到屏幕右侧", #selector(dockFloatingRight))] {
-            let item = NSMenuItem(title: title, action: action, keyEquivalent: "")
-            item.target = self
-            menu.addItem(item)
-        }
-        let point = view.convert(panel.convertPoint(fromScreen: NSEvent.mouseLocation), from: nil)
-        menu.popUp(positioning: nil, at: point, in: view)
+    @objc private func toggleFloating() { floating.toggle() }
+    @objc private func showSettings() {
+        guard let serviceURL else { return }
+        webView.load(URLRequest(url: serviceURL.appendingPathComponent("settings.html")))
+        NSApp.activate(ignoringOtherApps: true)
+        window.makeKeyAndOrderFront(nil)
     }
 
     private func openMain(taskID: String? = nil) {
-        if let taskID {
-            webView.callAsyncJavaScript("location.hash = 'task/' + taskID", arguments: ["taskID": taskID],
-                in: nil, in: .page, completionHandler: nil)
+        if let serviceURL {
+            var url = URLComponents(url: serviceURL, resolvingAgainstBaseURL: false)!
+            url.fragment = taskID.map { "task/" + $0 } ?? "tasks"
+            webView.load(URLRequest(url: url.url!))
         }
         NSApp.activate(ignoringOtherApps: true)
         window.makeKeyAndOrderFront(nil)
@@ -344,19 +214,21 @@ final class TraceApp: NSObject, NSApplicationDelegate, WKNavigationDelegate, WKU
 
     @objc private func reconnect() { connect() }
     @objc private func reloadPage() { webView.reload() }
-    @objc private func showTasks() { runAction("document.querySelector('[data-route=tasks]')?.click()") }
+    @objc private func showTasks() { openMain() }
     @objc private func showDiagrams() { runAction("document.querySelector('[data-route=diagrams]')?.click()") }
-    @objc private func showAppearance() { runAction("document.querySelector('[data-action=appearance]')?.click()") }
     @objc private func showIntegration() { runAction("document.querySelector('[data-action=integration]')?.click()") }
     @objc private func exportData() { runAction("document.querySelector('[data-action=integration]')?.click(); document.querySelector('[data-action=download]')?.click(); document.getElementById('info-dialog')?.close()") }
-    private func runAction(_ script: String) { webView.evaluateJavaScript(script, completionHandler: nil) }
+    private func runAction(_ script: String) {
+        if webView.url?.path == "/settings.html" { pendingWorkspaceScript = script; openMain() }
+        else { webView.evaluateJavaScript(script, completionHandler: nil) }
+    }
     @objc private func showInBrowser() { if let url = webView.url ?? serviceURL { NSWorkspace.shared.open(url) } }
     @objc private func showDataFolder() {
         NSWorkspace.shared.open(FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".local/share/agent-trace"))
     }
     @objc private func showAbout() {
         NSApp.orderFrontStandardAboutPanel(options: [
-            .applicationName: "Trace", .applicationVersion: "0.3.0", .version: "Mac 本机版",
+            .applicationName: "Trace", .applicationVersion: "0.4.0", .version: "Mac 本机版",
             .credits: NSAttributedString(string: "Agent 任务、进度与结构图谱。\n关闭窗口或退出 App 后，本机服务继续接收 CLI 汇报。")
         ])
     }
@@ -374,7 +246,7 @@ final class TraceApp: NSObject, NSApplicationDelegate, WKNavigationDelegate, WKU
         }
         let app = submenu("Trace")
         item(app, "关于 Trace", #selector(showAbout))
-        item(app, "外观…", #selector(showAppearance), ",")
+        item(app, "设置…", #selector(showSettings), ",")
         app.addItem(.separator())
         item(app, "隐藏 Trace", #selector(NSApplication.hide(_:)), "h", NSApp)
         app.addItem(.separator())
@@ -414,12 +286,14 @@ final class TraceApp: NSObject, NSApplicationDelegate, WKNavigationDelegate, WKU
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-        if webView === floatingWebView { updateFloatingPlacement(); return }
+        if webView === floating.webView { floating.didFinish(); return }
         guard webView === self.webView else { return }
         progress.stopAnimation(nil)
         loadingView.isHidden = true
         webView.isHidden = false
         window.makeFirstResponder(webView)
+        floating.publish(to: webView)
+        if let script = pendingWorkspaceScript { pendingWorkspaceScript = nil; webView.evaluateJavaScript(script, completionHandler: nil) }
     }
     func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
         if webView === self.webView, (error as NSError).code != NSURLErrorCancelled { showFailure(error.localizedDescription) }
@@ -458,12 +332,25 @@ final class TraceApp: NSObject, NSApplicationDelegate, WKNavigationDelegate, WKU
     }
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
         guard message.frameInfo.isMainFrame, let url = message.frameInfo.request.url, isLocal(url) else { return }
+        if message.name == "traceFloatingPreferences" {
+            guard let value = message.body as? [String: Any], let action = value["action"] as? String else { return }
+            if action == "get", let view = message.webView { floating.publish(to: view) }
+            else if action == "set", message.webView === webView, url.path == "/settings.html",
+                    let raw = value["preferences"], JSONSerialization.isValidJSONObject(raw),
+                    let data = try? JSONSerialization.data(withJSONObject: raw),
+                    let preferences = try? JSONDecoder().decode(FloatingPreferences.self, from: data), preferences.isValid {
+                floating.apply(preferences)
+            }
+            return
+        }
         if message.name == "traceFloating" {
             guard let value = message.body as? [String: Any], let action = value["action"] as? String else { return }
-            if action == "layout", message.webView === floatingWebView,
-               let expanded = value["expanded"] as? Bool, let height = value["height"] as? Int {
-                layoutFloating(expanded: expanded, height: height)
-            } else if action == "menu", message.webView === floatingWebView { showFloatingMenu() }
+            if action == "layout", message.webView === floating.webView,
+               let expanded = value["expanded"] as? Bool, let height = value["height"] as? Int,
+               let compactHeight = value["compactHeight"] as? Int {
+                floating.layout(expanded: expanded, height: height, compactHeight: compactHeight)
+            } else if action == "menu", message.webView === floating.webView { floating.showMenu() }
+            else if action == "settings" { showSettings() }
             else if action == "open-main" { openMain() }
             else if action == "open-task", let id = value["id"] as? String,
                     id.range(of: "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,79}$", options: .regularExpression) != nil {
@@ -506,7 +393,7 @@ final class TraceApp: NSObject, NSApplicationDelegate, WKNavigationDelegate, WKU
         case "dark": window.appearance = NSAppearance(named: .darkAqua)
         default: window.appearance = nil
         }
-        floatingPanel?.appearance = window.appearance
+        floating.appearance = window.appearance
     }
 
     private func performLifecycle(id: String, action: String, revision: Int, created: String) {

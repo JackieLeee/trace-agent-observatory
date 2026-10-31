@@ -22,6 +22,12 @@ struct FloatingLayoutCheck {
         let short = CGRect(x: 0, y: 0, width: 800, height: 300)
         let bounded = FloatingLayout.frame(current: original, side: .left, expanded: true, height: 500, screen: short, docked: true)
         assert(bounded.minY >= short.minY && bounded.maxY <= short.maxY)
+        for side in [FloatingSide.left, .right] {
+            let peek = FloatingLayout.peekFrame(full: card, side: side, screen: screen)
+            assert(peek.width == 10 && peek.height == 64)
+            assert(peek.minY >= screen.minY && peek.maxY <= screen.maxY)
+            assert(side == .left ? peek.minX == screen.minX : peek.maxX == screen.maxX)
+        }
         print("PASS: left/right snap, threshold, expansion anchor, negative monitor coordinates and screen bounds")
     }
 }
